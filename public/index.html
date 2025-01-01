@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Messenger</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <h2>J&J Email Messenger</h2>
+        <ul>
+          <li><a href="#" class="active">Compose</a></li>
+        </ul>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <header>
+          <h1>Compose Email</h1>
+        </header>
+        <div class="email-form-container">
+          <form id="emailForm">
+            <div class="form-group">
+              <label for="to">To:</label>
+              <input
+                type="email"
+                id="to"
+                name="to"
+                placeholder="Enter recipient email"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="cc">CC:</label>
+              <input
+                type="email"
+                id="cc"
+                name="cc"
+                placeholder="Enter CC email"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="bcc">BCC:</label>
+              <input
+                type="email"
+                id="bcc"
+                name="bcc"
+                placeholder="Enter BCC email"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="subject">Subject:</label>
+              <input
+                type="text"
+                id="subject"
+                name="subject"
+                placeholder="Enter subject"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="message">Message:</label>
+              <textarea
+                id="message"
+                name="message"
+                rows="15"
+                placeholder="Write your message here"
+                required
+              ></textarea>
+            </div>
+
+            <button type="submit" class="btn">Send</button>
+            <div id="response"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
