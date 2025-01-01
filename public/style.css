@@ -90,6 +90,7 @@ header h1 {
 
 .form-group input,
 .form-group textarea {
+  margin-left: 15px;
   flex: 1;
   padding: 10px;
   border: 1px solid #ddd;

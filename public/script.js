@@ -1,19 +1,23 @@
 document.getElementById("emailForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const formData = {
-    to: document.getElementById("to").value,
-    cc: document.getElementById("cc").value,
-    bcc: document.getElementById("bcc").value,
-    subject: document.getElementById("subject").value,
-    message: document.getElementById("message").value,
-  };
+  const formData = new FormData();
+  formData.append("to", document.getElementById("to").value);
+  formData.append("cc", document.getElementById("cc").value);
+  formData.append("bcc", document.getElementById("bcc").value);
+  formData.append("subject", document.getElementById("subject").value);
+  formData.append("message", document.getElementById("message").value);
+
+  // Append attachments
+  const attachments = document.getElementById("attachments").files;
+  for (const file of attachments) {
+    formData.append("attachments", file);
+  }
 
   try {
     const response = await fetch("/send", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
+      body: formData, // FormData handles multipart requests
     });
 
     const result = await response.json();

@@ -1,6 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { Client } = require("@microsoft/microsoft-graph-client");
+const multer = require("multer");
+const fs = require("fs").promises;
 require("isomorphic-fetch");
 require("dotenv").config();
 
@@ -10,6 +12,9 @@ const port = 4000;
 // Middleware
 app.use(bodyParser.json());
 app.use(express.static("public"));
+
+// Multer configuration for file uploads
+const upload = multer({ dest: "uploads/" });
 
 // Load environment variables
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -41,7 +46,7 @@ async function getAccessToken() {
 }
 
 // Helper function to send an email using Microsoft Graph
-async function sendEmail({ to, cc, bcc, subject, message }) {
+async function sendEmail({ to, cc, bcc, subject, message, attachments }) {
   const token = await getAccessToken();
 
   const client = Client.init({
@@ -49,6 +54,18 @@ async function sendEmail({ to, cc, bcc, subject, message }) {
       done(null, token);
     },
   });
+
+  // Prepare attachments for Microsoft Graph API
+  const graphAttachments = await Promise.all(
+    attachments.map(async (file) => {
+      const fileContent = await fs.readFile(file.path);
+      return {
+        "@odata.type": "#microsoft.graph.fileAttachment",
+        name: file.originalname,
+        contentBytes: fileContent.toString("base64"),
+      };
+    })
+  );
 
   const email = {
     message: {
@@ -60,15 +77,17 @@ async function sendEmail({ to, cc, bcc, subject, message }) {
       toRecipients: to ? [{ emailAddress: { address: to } }] : [],
       ccRecipients: cc ? [{ emailAddress: { address: cc } }] : [],
       bccRecipients: bcc ? [{ emailAddress: { address: bcc } }] : [],
+      attachments: graphAttachments, // Include attachments here
     },
   };
 
   await client.api("/me/sendMail").post(email);
 }
 
-// API route to handle email sending
-app.post("/send", async (req, res) => {
+// API route to handle email sending with attachments
+app.post("/send", upload.array("attachments"), async (req, res) => {
   const { to, cc, bcc, subject, message } = req.body;
+  const attachments = req.files;
 
   if (!to || !subject || !message) {
     return res
@@ -77,7 +96,13 @@ app.post("/send", async (req, res) => {
   }
 
   try {
-    await sendEmail({ to, cc, bcc, subject, message });
+    await sendEmail({ to, cc, bcc, subject, message, attachments });
+
+    // Cleanup uploaded files
+    attachments.forEach((file) => {
+      fs.unlink(file.path);
+    });
+
     res
       .status(200)
       .json({ success: true, message: "Email sent successfully!" });
