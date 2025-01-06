@@ -1,9 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const { Client } = require("@microsoft/microsoft-graph-client");
 const multer = require("multer");
 const fs = require("fs").promises;
-require("isomorphic-fetch");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 const app = express();
@@ -17,71 +16,44 @@ app.use(express.static("public"));
 const upload = multer({ dest: "uploads/" });
 
 // Load environment variables
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const TENANT_ID = process.env.TENANT_ID;
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
 
-// Helper function to get an OAuth token
-async function getAccessToken() {
-  const url = `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`;
-
-  const params = new URLSearchParams();
-  params.append("grant_type", "client_credentials");
-  params.append("client_id", CLIENT_ID);
-  params.append("client_secret", CLIENT_SECRET);
-  params.append("scope", "https://graph.microsoft.com/.default");
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to get access token: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.access_token;
-}
-
-// Helper function to send an email using Microsoft Graph
+// Helper function to send an email using Nodemailer
 async function sendEmail({ to, cc, bcc, subject, message, attachments }) {
-  const token = await getAccessToken();
-
-  const client = Client.init({
-    authProvider: (done) => {
-      done(null, token);
+  // Create a transporter object
+  const transporter = nodemailer.createTransport({
+    service: "gmail", // Change as needed (e.g., 'smtp.office365.com' for Outlook)
+    auth: {
+      user: EMAIL_USER,
+      pass: EMAIL_PASS,
     },
   });
 
-  // Prepare attachments for Microsoft Graph API
-  const graphAttachments = await Promise.all(
+  // Prepare attachments for Nodemailer
+  const nodemailerAttachments = await Promise.all(
     attachments.map(async (file) => {
       const fileContent = await fs.readFile(file.path);
       return {
-        "@odata.type": "#microsoft.graph.fileAttachment",
-        name: file.originalname,
-        contentBytes: fileContent.toString("base64"),
+        filename: file.originalname,
+        content: fileContent,
       };
     })
   );
 
-  const email = {
-    message: {
-      subject: subject,
-      body: {
-        contentType: "HTML",
-        content: message,
-      },
-      toRecipients: to ? [{ emailAddress: { address: to } }] : [],
-      ccRecipients: cc ? [{ emailAddress: { address: cc } }] : [],
-      bccRecipients: bcc ? [{ emailAddress: { address: bcc } }] : [],
-      attachments: graphAttachments, // Include attachments here
-    },
+  // Email options
+  const mailOptions = {
+    from: EMAIL_USER,
+    to,
+    cc,
+    bcc,
+    subject,
+    html: message,
+    attachments: nodemailerAttachments,
   };
 
-  await client.api("/me/sendMail").post(email);
+  // Send email
+  await transporter.sendMail(mailOptions);
 }
 
 // API route to handle email sending with attachments
